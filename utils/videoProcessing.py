@@ -1,4 +1,6 @@
 import subprocess
+import traceback
+
 
 def transcoding(input, output, profile, scale, bitrate, codec):
 
@@ -12,10 +14,15 @@ def transcoding(input, output, profile, scale, bitrate, codec):
     else:
         profile = ''
 
-    command = "ffmpeg -i {input} -s {scale} -vcodec {codec} {profile} -b {bitrate} -ab 320k -ar 24000 " \
+    command = "ffmpeg -i {input} -s {scale} -vcodec {codec} {profile} -b:a {bitrate} -ab 320k -ar 24000 " \
               "-acodec aac -y {output}".format(input=input, scale=scale, codec=codec, profile=profile,
                                                bitrate=bitrate, output=output)
-    subprocess.call(command, shell=False)
+    try:
+        subprocess.call(command, shell=False)
+    except:
+        print('Ошибка:\n', traceback.format_exc())
+
+    return()
 
 
 if __name__ == '__main__':

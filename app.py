@@ -1,21 +1,21 @@
-import datetime
 import os
 import traceback
 
-from flask import Flask, request, jsonify, redirect, url_for, send_from_directory
+from flask import Flask, request, jsonify, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 
 from utils.videoProcessing import transcoding
+import setup as S
 
-UPLOAD_VIDEO_FOLDER = r'C:\Users\g-luc\YandexDisk\python code\videoConverter\uploads'
+UPLOAD_VIDEO_FOLDER = S.UPLOAD_VIDEO_FOLDER
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_VIDEO_FOLDER
-ALLOWED_EXTENSIONS = {'avi', 'mp4', 'mpg'}
+ALLOWED_EXTENSIONS = S.ALLOWED_EXTENSIONS
 
 
 def _allowed_file(filename):
-    # Проверяем расширение файла (видео это или нет)
+    # Проверяю расширение файла (видео это или нет)
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
@@ -25,6 +25,9 @@ def hello_world():
 
 
 @app.route('/upload_video', methods=['GET'])
+# Создаю примитивный web-интерфейс для проверки работы сервиса
+# Предусмотрен выбор параметров: Разрешение видео, Битрейт, Кодек и Профиль кодека
+# Если делать по-нормальному, то нужно рендерить темплэйт вместо этой заглушки
 def load_video():
     return '''
     <!doctype html>
@@ -67,37 +70,26 @@ def load_video():
 def answer():
     # сохраняю видео на сервер
     if request.method == 'POST':
+        # Получаю из запроса переданные парамтры
         file = request.files['file']
         Scale = request.values['Scale']
         Bitrate = request.values['Bitrate']
         Codec = request.values['Codec']
         Profile = request.values['Profile']
 
-        print(file.filename)
-        print(Scale, Bitrate, Codec, Profile)
-
         if file and _allowed_file(file.filename):
-            # filename, file_extension = os.path.splitext(file)
-            # filename = file.filename
             filename = secure_filename(file.filename)
             path_to_file = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             if not os.path.isdir(UPLOAD_VIDEO_FOLDER):
                 os.makedirs(UPLOAD_VIDEO_FOLDER)
             try:
                 file.save(path_to_file)
-                path_to_file1 = os.path.abspath(path_to_file)
-                #path_to_file = path_to_file.replace('\\\\', '\\')
-                print(path_to_file1)
-                transcoding(path_to_file1, path_to_file1, Profile, Scale, Bitrate, Codec)
-                #file.close()
-                #return redirect(url_for('uploaded_file', filename=filename))
+                path_to_converted_file = os.path.join(S.CONVERTED_VIDEO_FOLDER, filename) + '_(converted)'
+                transcoding(path_to_file, path_to_converted_file, Profile, Scale, Bitrate, Codec)
                 return jsonify('http://127.0.0.1:5000' + url_for('uploaded_file', filename=filename))
             except:
                 print('Ошибка:\n', traceback.format_exc())
-            # answer = str(r'C:\Users\g-luc\YandexDisk\python code\videoConverter\videos') + '\\' + str(DATETIME) + '_' + str(filename)
-            # print(answer)
-            # return jsonify(answer)
-
+                return jsonify(traceback.format_exc())
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
