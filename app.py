@@ -78,14 +78,19 @@ def answer():
         Profile = request.values['Profile']
 
         if file and _allowed_file(file.filename):
+            # Если файл подходит, то скачиваю его на сервер
             filename = secure_filename(file.filename)
             path_to_file = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             if not os.path.isdir(UPLOAD_VIDEO_FOLDER):
                 os.makedirs(UPLOAD_VIDEO_FOLDER)
             try:
                 file.save(path_to_file)
-                path_to_converted_file = os.path.join(S.CONVERTED_VIDEO_FOLDER, filename) + '_(converted)'
-                transcoding(path_to_file, path_to_converted_file, Profile, Scale, Bitrate, Codec)
+                if not os.path.isdir(S.CONVERTED_VIDEO_FOLDER):
+                    os.makedirs(S.CONVERTED_VIDEO_FOLDER)
+                path_to_converted_file = os.path.join(S.CONVERTED_VIDEO_FOLDER, filename)
+                transcoder_answer = transcoding(path_to_file, path_to_converted_file, Profile, Scale, Bitrate, Codec)
+                if transcoder_answer != 'ok':
+                    return jsonify(transcoder_answer) # Возвращаю текст ошибки транскодирования
                 return jsonify('http://127.0.0.1:5000' + url_for('uploaded_file', filename=filename))
             except:
                 print('Ошибка:\n', traceback.format_exc())
