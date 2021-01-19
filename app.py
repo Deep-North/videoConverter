@@ -2,7 +2,7 @@ import os
 import traceback
 
 from flask import Flask, request, jsonify, url_for, send_from_directory
-from werkzeug.utils import secure_filename
+from werkzeug.utils import secure_filename, redirect
 
 from utils.videoProcessing import transcoding
 import setup as S
@@ -20,8 +20,13 @@ def _allowed_file(filename):
 
 
 @app.route('/')
-def hello_world():
-    return 'Hello World!'
+def index():
+    headers = request.headers
+    auth = headers.get("X-Api-Key")
+    if auth == S.X_Api_Key:
+        return redirect('/upload_video')
+    else:
+        return jsonify({"message": "ERROR: Unauthorized"}), 401
 
 
 @app.route('/upload_video', methods=['GET'])
